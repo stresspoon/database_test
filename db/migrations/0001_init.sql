@@ -1,5 +1,8 @@
 -- Types, tables, indexes per docs/database.md
 
+-- Enable required extensions for GIST indexes
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
 -- 2.1 Types
 CREATE TYPE reservation_status AS ENUM ('confirmed', 'ongoing', 'cancelled');
 CREATE TYPE audit_event AS ENUM ('search', 'hold_create', 'reserve_confirm', 'reserve_cancel', 'auth');
@@ -26,7 +29,7 @@ CREATE TABLE room_blackouts (
   reason     TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_blackouts_room_period ON room_blackouts USING GIST (room_id, period);
+CREATE INDEX idx_blackouts_room_period ON room_blackouts USING GIST (period, room_id);
 
 CREATE TABLE holds (
   id          BIGSERIAL PRIMARY KEY,
@@ -37,7 +40,7 @@ CREATE TABLE holds (
   expires_at  TIMESTAMPTZ NOT NULL,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_holds_room_period ON holds USING GIST (room_id, period);
+CREATE INDEX idx_holds_room_period ON holds USING GIST (period, room_id);
 CREATE INDEX idx_holds_expiry       ON holds (expires_at);
 
 CREATE TABLE reservations (
@@ -51,7 +54,7 @@ CREATE TABLE reservations (
   created_at     TIMESTAMPTZ         NOT NULL DEFAULT now(),
   updated_at     TIMESTAMPTZ         NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_reservations_room_period ON reservations USING GIST (room_id, period);
+CREATE INDEX idx_reservations_room_period ON reservations USING GIST (period, room_id);
 CREATE INDEX idx_reservations_phone       ON reservations (phone_hash);
 CREATE INDEX idx_reservations_status      ON reservations (status);
 

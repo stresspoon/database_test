@@ -1,7 +1,11 @@
 import crypto from 'node:crypto'
 import { nanoid } from 'nanoid'
 import type { Room, Reservation, Hold, Blackout } from '../data/supabaseClient.js'
-import { repo, DataAccessError } from '../data/supabaseClient.js'
+import { repo as supabaseRepo, DataAccessError } from '../data/supabaseClient.js'
+import { MockDataClient } from '../data/mockClient.js'
+
+// Use mock client if Supabase credentials not available
+const repo = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY ? supabaseRepo : MockDataClient
 
 export type ErrorCode = 'invalid_input' | 'conflict' | 'hold_expired' | 'auth_failed' | 'policy_violation' | 'system_error'
 

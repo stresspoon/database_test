@@ -112,8 +112,12 @@ async function searchRooms() {
         return;
     }
     
-    const start = `${date}T${startTime}:00.000Z`;
-    const end = `${date}T${endTime}:00.000Z`;
+    // Create local date/time and convert to UTC
+    const startDate = new Date(`${date}T${startTime}:00`);
+    const endDate = new Date(`${date}T${endTime}:00`);
+    
+    const start = startDate.toISOString();
+    const end = endDate.toISOString();
     
     const params = new URLSearchParams({
         start,
@@ -186,9 +190,13 @@ async function generateSlots() {
     const endTime = document.getElementById('searchEndTime').value;
     const duration = document.getElementById('duration').value;
     
+    // Create local date/time and convert to UTC
+    const startDate = new Date(`${date}T${startTime}:00`);
+    const endDate = new Date(`${date}T${endTime}:00`);
+    
     const params = new URLSearchParams({
-        start: `${date}T${startTime}:00.000Z`,
-        end: `${date}T${endTime}:00.000Z`,
+        start: startDate.toISOString(),
+        end: endDate.toISOString(),
         stepMinutes: duration,
         durationMinutes: duration,
         bufferMinutes: 0

@@ -141,7 +141,70 @@ INSERT INTO rooms (name, location, capacity, open_time, close_time) VALUES
   ('소회의실 1', '2층', 4, '09:00', '18:00'),
   ('소회의실 2', '2층', 4, '09:00', '18:00');
 
--- Grant permissions for Supabase
-GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres, anon, authenticated, service_role;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres, anon, authenticated, service_role;
-GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO postgres, anon, authenticated, service_role;
+-- 8. Enable Row Level Security (RLS)
+ALTER TABLE rooms ENABLE ROW LEVEL SECURITY;
+ALTER TABLE room_blackouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE holds ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reservations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- 9. Create RLS Policies
+
+-- Policies for 'rooms' table
+CREATE POLICY "Rooms are viewable by everyone" 
+  ON rooms FOR SELECT 
+  USING (is_active = true);
+
+CREATE POLICY "Service role can manage rooms" 
+  ON rooms FOR ALL 
+  USING (auth.role() = 'service_role');
+
+-- Policies for 'room_blackouts' table
+CREATE POLICY "Blackouts are viewable by everyone" 
+  ON room_blackouts FOR SELECT 
+  USING (true);
+
+CREATE POLICY "Service role can manage blackouts" 
+  ON room_blackouts FOR ALL 
+  USING (auth.role() = 'service_role');
+
+-- Policies for 'holds' table
+CREATE POLICY "Service role can manage holds" 
+  ON holds FOR ALL 
+  USING (auth.role() = 'service_role');
+
+CREATE POLICY "Users can view holds" 
+  ON holds FOR SELECT 
+  USING (auth.role() = 'anon' OR auth.role() = 'authenticated');
+
+-- Policies for 'reservations' table
+CREATE POLICY "Service role can manage reservations" 
+  ON reservations FOR ALL 
+  USING (auth.role() = 'service_role');
+
+CREATE POLICY "View confirmed reservations" 
+  ON reservations FOR SELECT 
+  USING (status IN ('confirmed', 'ongoing'));
+
+-- Policies for 'audit_logs' table
+CREATE POLICY "Service role can manage audit logs" 
+  ON audit_logs FOR ALL 
+  USING (auth.role() = 'service_role');
+
+-- 10. Grant permissions for Supabase
+-- Service role gets full access
+GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO service_role;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO service_role;
+
+-- Anon and authenticated get limited access
+GRANT SELECT ON rooms TO anon, authenticated;
+GRANT SELECT ON room_blackouts TO anon, authenticated;
+GRANT SELECT ON holds TO anon, authenticated;
+GRANT SELECT ON reservations TO anon, authenticated;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+
+-- Postgres user keeps full access
+GRANT ALL ON ALL TABLES IN SCHEMA public TO postgres;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO postgres;
+GRANT ALL ON ALL FUNCTIONS IN SCHEMA public TO postgres;

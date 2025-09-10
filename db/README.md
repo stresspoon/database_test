@@ -29,6 +29,12 @@ Supabase Dashboard > Settings > API에서:
 - GIST 인덱스에서 `period`를 먼저, `room_id`를 나중에 지정
 - 이는 PostgreSQL의 GIST 인덱스 제약사항 때문
 
+#### Row Level Security (RLS)
+- 모든 테이블에 RLS 활성화
+- `service_role` 키 사용 시 모든 권한
+- `anon`/`authenticated` 사용자는 읽기 전용
+- Security Advisor 경고 해결
+
 #### 샘플 데이터
 - 6개의 테스트 회의실 자동 생성
 - 다양한 운영 시간과 수용 인원 설정

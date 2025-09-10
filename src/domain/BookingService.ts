@@ -193,14 +193,14 @@ export class BookingService {
     // load conflicts
     const [reservations, holds, blackouts] = await Promise.all([
       repo.listReservationsForRoom(params.roomId, window, ['confirmed', 'ongoing']),
-      repo.listActiveHolds(params.roomId, window, new Date()),
+      repo.listHoldsForRoom(params.roomId, window),
       repo.listBlackouts(params.roomId, window),
     ])
 
     const conflicts = [
-      ...reservations.map(r => ({ start: new Date(r.period.lower), end: new Date(r.period.upper) })),
-      ...holds.map(h => ({ start: new Date(h.period.lower), end: new Date(h.period.upper) })),
-      ...blackouts.map(b => ({ start: new Date(b.period.lower), end: new Date(b.period.upper) })),
+      ...reservations.map((r: any) => ({ start: new Date(r.period.lower), end: new Date(r.period.upper) })),
+      ...holds.map((h: any) => ({ start: new Date(h.period.lower), end: new Date(h.period.upper) })),
+      ...blackouts.map((b: any) => ({ start: new Date(b.period.lower), end: new Date(b.period.upper) })),
     ]
 
     const buffered = buffer > 0 ? (rng: { start: Date; end: Date }) => ({ start: addMinutes(rng.start, -buffer), end: addMinutes(rng.end, buffer) }) : (x: any) => x
@@ -223,13 +223,13 @@ export class BookingService {
     // Collision pre-check against reservations and active holds
     const [reservations, holds] = await Promise.all([
       repo.listReservationsForRoom(input.roomId, { start, end }, ['confirmed', 'ongoing']),
-      repo.listActiveHolds(input.roomId, { start, end }, new Date()),
+      repo.listHoldsForRoom(input.roomId, { start, end }),
     ])
     if (reservations.length > 0 || holds.length > 0) throw new DomainError('conflict', 'slot already held or reserved', 409)
 
     const holdToken = nanoid(24)
     const expiresAt = new Date(Date.now() + ttl * 1000)
-    const phone_hash = input.phone ? hashPhone(input.phone) : undefined
+    const phone_hash = input.phone ? hashPhone(input.phone) : null
     try {
       await repo.insertHold({ room_id: input.roomId, start, end, phone_hash, hold_token: holdToken, expires_at: expiresAt })
     } catch (e) {
@@ -256,7 +256,14 @@ export class BookingService {
     const phone_hash = hashPhone(input.phone)
     const password_hash = await hashPassword(input.password)
     try {
-      const r = await repo.insertReservation({ room_id: hold.room_id, start, end, reserver_name: input.reserverName, phone_hash, password_hash })
+      const r = await repo.insertReservation({ 
+        room_id: hold.room_id, 
+        period: { lower: start.toISOString(), upper: end.toISOString() },
+        status: 'confirmed' as const,
+        reserver_name: input.reserverName, 
+        phone_hash, 
+        password_hash 
+      })
       // best-effort delete hold after success
       try { await repo.deleteHold(hold.id) } catch {}
       return { id: r.id, roomId: r.room_id, start: hold.period.lower, end: hold.period.upper }
@@ -268,25 +275,11 @@ export class BookingService {
   }
 
   static async listReservationsByAuth(auth: ListReservationsAuth): Promise<Reservation[]> {
-    // Since DB stores only hashed password, we cannot verify here unless we query by hash.
     const phone_hash = hashPhone(auth.phone)
-    // We cannot recompute the same password hash (argon2 is salted). Instead, the repo method expects a stored hash.
-    // For a simple approach, we fetch by phone and check password with verify.
-    const all = await repo.listReservationsByAuth({ phone_hash, password_hash: '' })
-    // The above would return nothing due to password_hash filter. As a simplified approach for this layer without RPC:
-    // We'll relax by pulling by phone only, then filter by verifyPassword.
-    // In real deployment, expose a secure RPC that verifies auth and returns rows.
-    // Fallback implementation:
-    const sb = (await import('../data/supabaseClient.js')).getSupabaseClient()
-    const { data, error } = await sb
-      .from('reservations')
-      .select('*')
-      .eq('phone_hash', phone_hash)
-      .in('status', ['confirmed', 'ongoing'])
-    if (error) throw new DomainError('system_error', error.message)
+    const all = await repo.listReservationsByPhoneHash(phone_hash)
     const ok: Reservation[] = []
-    for (const r of (data as unknown as Reservation[])) {
-      if (await verifyPassword(auth.password, r.password_hash)) ok.push(r)
+    for (const r of all) {
+      if (await verifyPassword(auth.password, (r as any).password_hash)) ok.push(r as Reservation)
     }
     if (ok.length === 0) throw new DomainError('auth_failed', 'authentication failed', 401)
     return ok

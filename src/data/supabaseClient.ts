@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import type { ReservationRow } from './types.js'
 
 export type TimeRange = { start: Date; end: Date }
 
@@ -109,7 +110,19 @@ export const repo = {
     return data as unknown as Hold[]
   },
 
-  async insertHold(row: { room_id: number; start: Date; end: Date; phone_hash?: string; hold_token: string; expires_at: Date }): Promise<Hold> {
+  async listHoldsForRoom(roomId: number, range: TimeRange): Promise<Hold[]> {
+    const sb = getSupabaseClient()
+    const { data, error } = await sb
+      .from('holds')
+      .select('*')
+      .eq('room_id', roomId)
+      .gt('expires_at', new Date().toISOString())
+      .filter('period', 'ov', `tsrange('${range.start.toISOString()}', '${range.end.toISOString()}', '[)')`)
+    if (error) throw new DataAccessError(error.message, error.code)
+    return data as unknown as Hold[]
+  },
+
+  async insertHold(row: { room_id: number; start: Date; end: Date; phone_hash: string | null; hold_token: string; expires_at: Date }): Promise<Hold> {
     const sb = getSupabaseClient()
     const period = `tsrange('${row.start.toISOString()}','${row.end.toISOString()}','[)')`
     const { data, error } = await sb
@@ -143,9 +156,11 @@ export const repo = {
     if (error) throw new DataAccessError(error.message, error.code)
   },
 
-  async insertReservation(row: { room_id: number; start: Date; end: Date; reserver_name: string; phone_hash: string; password_hash: string }): Promise<Reservation> {
+  async insertReservation(row: Omit<ReservationRow, 'id' | 'created_at' | 'updated_at'>): Promise<Reservation> {
     const sb = getSupabaseClient()
-    const period = `tsrange('${row.start.toISOString()}','${row.end.toISOString()}','[)')`
+    const period = typeof row.period === 'object' 
+      ? `tsrange('${row.period.lower}','${row.period.upper}','[)')`
+      : row.period
     const { data, error } = await sb
       .from('reservations')
       .insert({
@@ -154,12 +169,24 @@ export const repo = {
         reserver_name: row.reserver_name,
         phone_hash: row.phone_hash,
         password_hash: row.password_hash,
-        status: 'confirmed',
+        status: row.status || 'confirmed',
       })
       .select('*')
       .single()
     if (error) throw new DataAccessError(error.message, error.code)
     return data as unknown as Reservation
+  },
+
+  async listReservationsByPhoneHash(phone_hash: string): Promise<Reservation[]> {
+    const sb = getSupabaseClient()
+    const { data, error } = await sb
+      .from('reservations')
+      .select('*')
+      .eq('phone_hash', phone_hash)
+      .in('status', ['confirmed', 'ongoing'])
+      .order('created_at', { ascending: false })
+    if (error) throw new DataAccessError(error.message, error.code)
+    return data as unknown as Reservation[]
   },
 
   async listReservationsByAuth(auth: { phone_hash: string; password_hash: string }): Promise<Reservation[]> {

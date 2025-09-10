@@ -16,10 +16,10 @@ const mockBlackouts: BlackoutRow[] = []
 export const MockDataClient = {
   async listActiveRooms(params: { capacity?: number; location?: string } = {}): Promise<Room[]> {
     let rooms = [...mockRooms].filter(r => r.is_active)
-    if (params.capacity) {
-      rooms = rooms.filter(r => r.capacity >= params.capacity)
+    if (params?.capacity !== undefined) {
+      rooms = rooms.filter(r => r.capacity >= params.capacity!)
     }
-    if (params.location) {
+    if (params?.location !== undefined) {
       rooms = rooms.filter(r => r.location === params.location)
     }
     return rooms as unknown as Room[]
@@ -159,5 +159,57 @@ export const MockDataClient = {
       rollback: async () => {},
       commit: async () => {}
     }
+  },
+
+  // Additional methods needed by BookingService
+  async listActiveHolds(now: Date) {
+    return mockHolds.filter(h => new Date(h.expires_at) > now) as unknown as Hold[]
+  },
+
+  async insertHold(hold: { room_id: number; start: Date; end: Date; phone_hash: string | null; hold_token: string; expires_at: Date }): Promise<Hold> {
+    const newHold: HoldRow = {
+      room_id: hold.room_id,
+      period: {
+        lower: hold.start.toISOString(),
+        upper: hold.end.toISOString()
+      },
+      phone_hash: hold.phone_hash,
+      hold_token: hold.hold_token,
+      expires_at: hold.expires_at.toISOString(),
+      id: mockHolds.length + 1,
+      created_at: new Date().toISOString()
+    }
+    mockHolds.push(newHold)
+    return newHold as unknown as Hold
+  },
+
+  async insertReservation(reservation: Omit<ReservationRow, 'id'|'created_at'|'updated_at'>): Promise<Reservation> {
+    const newRes: ReservationRow = {
+      ...reservation,
+      id: mockReservations.length + 1,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+    mockReservations.push(newRes)
+    return newRes as unknown as Reservation
+  },
+
+  async listReservationsByAuth(phoneHash: string, passwordHash: string): Promise<Reservation[]> {
+    return mockReservations.filter(r => 
+      r.phone_hash === phoneHash && 
+      r.password_hash === passwordHash
+    ) as unknown as Reservation[]
+  },
+
+  async cancelReservationIfAllowed(input: { id: number; phoneHash: string; passwordHash: string }): Promise<Reservation | null> {
+    const res = mockReservations.find(r => 
+      r.id === input.id && 
+      r.phone_hash === input.phoneHash && 
+      r.password_hash === input.passwordHash
+    )
+    if (!res) return null
+    res.status = 'cancelled'
+    res.updated_at = new Date().toISOString()
+    return res as unknown as Reservation
   }
 }

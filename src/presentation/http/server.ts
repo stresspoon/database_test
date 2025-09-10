@@ -1,9 +1,28 @@
 import express from 'express'
 import { z } from 'zod'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { BookingService, DomainError } from '../../domain/BookingService.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const app = express()
 app.use(express.json())
+
+// Serve static files
+app.use(express.static(path.join(__dirname, '../../../public')))
+
+// CORS for API routes
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200)
+  }
+  next()
+})
 
 // Helpers
 function sendError(res: any, err: any) {
@@ -60,8 +79,8 @@ const authSchema = z.object({
   password: z.string().min(8),
 })
 
-// Health check endpoint
-app.get('/', (req, res) => {
+// API health check endpoint
+app.get('/api', (req, res) => {
   res.json({ 
     status: 'ok', 
     service: 'Room Reservation API',

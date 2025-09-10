@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회의실 예약 시스템</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏢 회의실 예약 시스템</h1>
+            <div class="auth-status">
+                <span id="authStatus">로그인하여 예약 관리</span>
+                <button id="authBtn" class="btn-secondary">로그인</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- 회의실 검색 섹션 -->
+            <section class="search-section">
+                <h2>회의실 검색</h2>
+                <div class="search-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="searchDate">날짜</label>
+                            <input type="date" id="searchDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="searchStartTime">시작 시간</label>
+                            <input type="time" id="searchStartTime" value="09:00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="searchEndTime">종료 시간</label>
+                            <input type="time" id="searchEndTime" value="10:00" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="searchCapacity">최소 인원</label>
+                            <input type="number" id="searchCapacity" min="1" placeholder="선택">
+                        </div>
+                        <div class="form-group">
+                            <label for="searchLocation">위치</label>
+                            <input type="text" id="searchLocation" placeholder="선택">
+                        </div>
+                        <button id="searchBtn" class="btn-primary">검색</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 검색 결과 -->
+            <section id="roomsSection" class="hidden">
+                <h2>가용 회의실</h2>
+                <div id="roomsList" class="rooms-grid"></div>
+            </section>
+
+            <!-- 시간 슬롯 선택 -->
+            <section id="slotsSection" class="hidden">
+                <h2>시간 선택</h2>
+                <div class="slots-config">
+                    <div class="form-group">
+                        <label for="duration">회의 시간 (분)</label>
+                        <select id="duration">
+                            <option value="30">30분</option>
+                            <option value="60" selected>60분</option>
+                            <option value="90">90분</option>
+                            <option value="120">120분</option>
+                        </select>
+                    </div>
+                    <button id="generateSlotsBtn" class="btn-secondary">시간대 생성</button>
+                </div>
+                <div id="slotsList" class="slots-grid"></div>
+            </section>
+
+            <!-- 예약 확정 폼 -->
+            <section id="confirmSection" class="hidden">
+                <h2>예약 정보 입력</h2>
+                <form id="confirmForm">
+                    <div class="selected-info">
+                        <p><strong>선택한 회의실:</strong> <span id="selectedRoom"></span></p>
+                        <p><strong>선택한 시간:</strong> <span id="selectedTime"></span></p>
+                        <p class="hold-warning">⏱️ 홀드 만료: <span id="holdExpiry"></span></p>
+                    </div>
+                    <div class="form-group">
+                        <label for="reserverName">예약자 이름</label>
+                        <input type="text" id="reserverName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">휴대폰 번호</label>
+                        <input type="tel" id="phone" required placeholder="01012345678">
+                    </div>
+                    <div class="form-group">
+                        <label for="password">비밀번호</label>
+                        <input type="password" id="password" required minlength="8">
+                    </div>
+                    <div class="form-group">
+                        <label for="passwordConfirm">비밀번호 확인</label>
+                        <input type="password" id="passwordConfirm" required minlength="8">
+                    </div>
+                    <button type="submit" class="btn-primary">예약 확정</button>
+                </form>
+            </section>
+
+            <!-- 내 예약 관리 -->
+            <section id="myReservationsSection" class="hidden">
+                <h2>내 예약</h2>
+                <div id="reservationsList"></div>
+            </section>
+        </main>
+
+        <!-- 로그인 모달 -->
+        <div id="loginModal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>로그인</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginPhone">휴대폰 번호</label>
+                        <input type="tel" id="loginPhone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">비밀번호</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn-primary">로그인</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 알림 토스트 -->
+        <div id="toast" class="toast hidden"></div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

@@ -60,6 +60,23 @@ const authSchema = z.object({
   password: z.string().min(8),
 })
 
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    service: 'Room Reservation API',
+    version: '1.0.0',
+    endpoints: [
+      'GET /rooms/availability',
+      'GET /rooms/:id/slots',
+      'POST /holds',
+      'POST /reservations/confirm',
+      'GET /reservations',
+      'POST /reservations/:id/cancel'
+    ]
+  })
+})
+
 // Routes
 app.get('/rooms/availability', async (req, res) => {
   try {
@@ -129,8 +146,8 @@ app.post('/reservations/:id/cancel', async (req, res) => {
   }
 })
 
-// Boot if run directly
-if (import.meta.url === (process.argv[1] && new URL('file://' + process.argv[1]).href)) {
+// Boot if run directly (not in Vercel)
+if (process.env.NODE_ENV !== 'production' && import.meta.url === (process.argv[1] && new URL('file://' + process.argv[1]).href)) {
   const port = Number(process.env.PORT || 3000)
   app.listen(port, () => console.log(`HTTP server listening on :${port}`))
 }

@@ -10,7 +10,8 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage",
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "vercel-build": "npm run build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

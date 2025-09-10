@@ -16,7 +16,7 @@
     "sourceMap": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": ["src", "tests"],
+  "include": ["src", "tests", "api"],
   "ts-node": {
     "esm": true
   }

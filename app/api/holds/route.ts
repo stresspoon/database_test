@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     if (code === 'conflict') {
       return NextResponse.json({ error: 'conflict' }, { status: 409 });
     }
-    return NextResponse.json({ error: 'system_error' }, { status: 500 });
+    return NextResponse.json({ error: 'system_error', message: String(e) }, { status: 500 });
   }
 }
 

@@ -28,11 +28,25 @@ export function getSupabase(): SupabaseClient {
   return _supabase;
 }
 
+function isSupabaseConfigured(): boolean {
+  return !!process.env.SUPABASE_URL && !!process.env.SUPABASE_ANON_KEY;
+}
+
 export async function findRoomsByAvailability(
   params: AvailabilitySearchParams
 ): Promise<AvailabilityResult> {
   const asOf = new Date();
-  // Very simplified: filter by capacity/location/is_active only. Overlap exclusion is done by server-side function ideally.
+  // Dev fallback when Supabase env is missing
+  if (process.env.NODE_ENV !== 'production' && !isSupabaseConfigured()) {
+    return {
+      rooms: [
+        { id: 1, name: 'Alpha', location: 'Seoul HQ', capacity: 6 },
+        { id: 2, name: 'Beta', location: 'Seoul HQ', capacity: 10 },
+      ].filter((r) => r.capacity >= params.people && (!params.location || r.location.toLowerCase().includes(params.location.toLowerCase()))),
+      asOf: toIso(asOf),
+    };
+  }
+  // Real query: filter by capacity/location/is_active only. Overlap exclusion should be handled server-side ideally.
   const sb = getSupabase();
   const { data: rooms, error } = await sb
     .from('rooms')
@@ -51,6 +65,21 @@ export async function findRoomsByAvailability(
 }
 
 export async function getRoomWithBlocks(roomId: number, date: string): Promise<RoomBlocks> {
+  if (process.env.NODE_ENV !== 'production' && !isSupabaseConfigured()) {
+    return {
+      room: {
+        id: roomId,
+        name: roomId === 2 ? 'Beta' : 'Alpha',
+        location: 'Seoul HQ',
+        capacity: roomId === 2 ? 10 : 6,
+        open_time: '09:00',
+        close_time: '18:00',
+      },
+      reservations: [],
+      holds: [],
+      blackouts: [],
+    };
+  }
   const sb = getSupabase();
   const [{ data: room }, { data: reservations }, { data: holds }, { data: blackouts }] = await Promise.all([
     sb.from('rooms').select('*').eq('id', roomId).single(),

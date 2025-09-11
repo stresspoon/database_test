@@ -122,7 +122,7 @@ export async function createHold(params: HoldCreateParams): Promise<HoldCreateRe
   const sb = getSupabase();
   const { error } = await sb.from('holds').insert({
     room_id: params.roomId,
-    period: `[${params.start},${params.end})`,
+    period: `["${params.start}","${params.end}")`,
     hold_token: token,
     expires_at: expires.toISOString(),
   });
